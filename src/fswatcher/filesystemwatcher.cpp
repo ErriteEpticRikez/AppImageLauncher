@@ -135,10 +135,24 @@ namespace appimagelauncher::daemon {
                 return false;
             }
 
+            // A recreated path gets a new descriptor while IN_IGNORED for the old
+            // inode may still be queued. Keep only the current watch for this path
+            // so a subsequent removal cannot accidentally leave it running.
+            bool success = true;
+            for (auto it = watchFdMap.begin(); it != watchFdMap.end();) {
+                if (it->first != watchFd && it->second == directory) {
+                    const auto obsoleteFd = it->first;
+                    ++it;
+                    const bool stopped = stopWatching(obsoleteFd);
+                    success = stopped && success;
+                } else {
+                    ++it;
+                }
+            }
             watchFdMap[watchFd] = directory;
             eventsLoopTimer.start();
 
-            return true;
+            return success;
         }
 
         bool startWatching() {
@@ -360,7 +374,9 @@ namespace appimagelauncher::daemon {
         // we must run both stop and start methods, so we cannot directly return false if either fails
         // also, this makes sure the signals are sent even in case either of the following methods fails
         const bool stopped = d->stopWatching(disappearedDirectories);
-        const bool started = d->startWatching(newDirectories);
+        // Reassert existing paths too: the same name may now refer to a new inode.
+        // inotify_add_watch preserves a live watch and recreates a removed one.
+        const bool started = d->startWatching(watchedDirectories);
         const bool rv = stopped && started;
 
         // send out the signals for further handling by users of a fs watcher instance

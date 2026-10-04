@@ -64,6 +64,67 @@ private slots:
         QVERIFY(watcher.stopWatching());
     }
 
+    void rapidlyRecreatedDirectoryRemainsWatched_data() {
+        QTest::addColumn<bool>("consumeRemovalBeforeUpdate");
+        QTest::newRow("removal-already-read") << true;
+        QTest::newRow("removal-still-pending") << false;
+    }
+
+    void rapidlyRecreatedDirectoryRemainsWatched() {
+        QFETCH(bool, consumeRemovalBeforeUpdate);
+        QTemporaryDir temporary;
+        QVERIFY(temporary.isValid());
+        QDir root(temporary.path());
+        QVERIFY(root.mkdir("applications"));
+        const QDir applications(root.filePath("applications"));
+        FileSystemWatcher watcher(applications);
+        QSignalSpy changed(&watcher, &FileSystemWatcher::fileChanged);
+        QSignalSpy added(&watcher, &FileSystemWatcher::newDirectoriesToWatch);
+        QSignalSpy disappeared(&watcher, &FileSystemWatcher::directoriesToWatchDisappeared);
+        QVERIFY(watcher.startWatching());
+        QVERIFY(root.rmdir("applications"));
+        if (consumeRemovalBeforeUpdate)
+            watcher.readEvents();
+        QVERIFY(root.mkdir("applications"));
+        QVERIFY(watcher.updateWatchedDirectories({applications}));
+        watcher.readEvents();
+
+        // The logical directory set did not change, even though its kernel watch did.
+        QVERIFY(watcher.directories() == QDirSet{applications});
+        QCOMPARE(added.count(), 1);
+        QVERIFY(qvariant_cast<QDirSet>(added.at(0).at(0)).empty());
+        QCOMPARE(disappeared.count(), 1);
+        QVERIFY(qvariant_cast<QDirSet>(disappeared.at(0).at(0)).empty());
+        QCOMPARE(changed.count(), 0);
+        const auto path = applications.filePath("recreated.AppImage");
+        QVERIFY(writeFile(path));
+        QTRY_COMPARE_WITH_TIMEOUT(changed.count(), 1, 1000);
+        QCOMPARE(changed.at(0).at(0).toString(), path);
+        QVERIFY(watcher.stopWatching());
+    }
+
+    void recreatedDirectoryCanBeRemovedBeforePendingEventsAreRead() {
+        QTemporaryDir temporary;
+        QVERIFY(temporary.isValid());
+        QDir root(temporary.path());
+        QVERIFY(root.mkdir("applications"));
+        const QDir applications(root.filePath("applications"));
+        FileSystemWatcher watcher(applications);
+        QSignalSpy changed(&watcher, &FileSystemWatcher::fileChanged);
+        QVERIFY(watcher.startWatching());
+        QVERIFY(root.rmdir("applications"));
+        QVERIFY(root.mkdir("applications"));
+        QVERIFY(watcher.updateWatchedDirectories({applications}));
+        QVERIFY(watcher.updateWatchedDirectories({}));
+        QVERIFY(watcher.directories().empty());
+
+        QVERIFY(writeFile(applications.filePath("after-removal.AppImage")));
+        watcher.readEvents();
+        QTest::qWait(200);
+        QCOMPARE(changed.count(), 0);
+        QVERIFY(watcher.stopWatching());
+    }
+
     void watcherCanBeStoppedAndRestarted() {
         QTemporaryDir temporary;
         QVERIFY(temporary.isValid());

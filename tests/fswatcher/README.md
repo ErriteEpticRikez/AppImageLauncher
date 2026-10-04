@@ -21,7 +21,8 @@ application's shared library interfaces.
 
 The suite covers missing directories (including consecutive entries and the last
 entry), removal of multiple watches, additions after the kernel removes a watch,
-stale queued events and zero-name watch events, disappearance and reappearance,
+stale queued events and zero-name watch events, disappearance and reappearance
+(including rapid recreation before or after queued removal events are read),
 file creation/rename/removal, directory signal payloads, and stop/restart. Async
 assertions have bounded waits, and CTest has a 30-second timeout. One case can be
 run directly, for example:

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "appimageupdate",
+    "url": "https://github.com/AppImageCommunity/AppImageUpdate.git",
+    "commit": "a211784dfc746fdb6d8d32d6bb39add451c1ddeb"
+  },
+  {
+    "name": "zsync2",
+    "url": "https://github.com/AppImageCommunity/zsync2.git",
+    "commit": "fc62ae7851ef28dc390a57fbdbe90b0afc5e3102"
+  },
+  {
+    "name": "libappimage",
+    "url": "https://github.com/AppImageCommunity/libappimage.git",
+    "commit": "d326d15c8a9299d3f135be8282f6545b32805996"
+  },
+  {
+    "name": "args",
+    "url": "https://github.com/Taywee/args.git",
+    "commit": "114200a9ad5fe06c8dea76e15d92325695cf3e34"
+  },
+  {
+    "name": "xdgutils",
+    "url": "https://github.com/AppImageCommunity/xdg-utils-cxx.git",
+    "commit": "d7da7ed523fafa5ddd8ec6e2208714de99c7c233"
+  }
+]

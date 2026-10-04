@@ -64,25 +64,41 @@ script publishes to that repository's hard-coded GHCR namespace.
 
 ## Validation status
 
-Recorded on 2026-10-04; remote GitHub Actions runs have **not** been observed.
-A configured workflow is not evidence of a completed CI run.
+Recorded on 2026-10-04. The full local container runner passed for both releases
+at `ff438744ecffaeace601f534e2d0ec2a2c88adea`, including the final review fixes.
+The hosted matrix also passed on the earlier integration revision `0f9f326`:
+[GitHub Actions run 37180402258](https://github.com/ErriteEpticRikez/AppImageLauncher/actions/runs/37180402258).
+See [PR checks](https://github.com/ErriteEpticRikez/AppImageLauncher/pull/6/checks)
+for hosted results on subsequent revisions. A configured workflow alone is not
+evidence of a completed run.
 
 | Check | Fedora 44 | Fedora 45 |
 | --- | --- | --- |
-| Standalone watcher tests, real filesystem events, `_GLIBCXX_DEBUG` | PASS: 1/1 CTest suite, 10 QtTest results | PASS: 1/1 CTest suite |
+| Standalone watcher tests, real filesystem events, `_GLIBCXX_DEBUG` | PASS: 1/1 CTest suite, 13 QtTest results | PASS: 1/1 CTest suite, 13 QtTest results |
 | Native source build with network disabled | PASS | PASS |
 | Staged `ail-cli --help`, helper linkage and static interpreter checks | PASS | PASS |
-| Final installed-RPM smoke, upgrade and erase checks | Pending final integration run | Pending final integration run |
+| Final installed-RPM smoke, upgrade and erase checks | PASS | PASS |
 | GNOME/KDE Wayland, SELinux enforcing and host lifecycle checks below | NOT RUN | NOT RUN |
-| Remote Fedora Actions matrix | NOT RUN | NOT RUN |
+| Remote Fedora Actions matrix at `0f9f326` (linked above) | PASS | PASS |
 
 Native build evidence and exact commands are in
 [native validation notes](../packaging/fedora/native-validation.md). The watcher
-suite covers absent directories, watch removal, kernel-removed watches, stale
-queued events, additions, file creation/movement/removal and restart. Its
+suite covers absent directories, rapid recreation with consumed or pending kernel
+events, removal of replacement watches, watch removal, kernel-removed watches,
+stale queued events, additions, file creation/movement/removal and restart. Its
 [standalone instructions](../tests/fswatcher/README.md) are independent of the
 application dependency build. Headless helper startup does not prove a completed
 Update or Remove action or a usable Wayland dialog.
+
+The final local runs used the commands above with output directories
+`/tmp/ail-fedora44-final-results` and `/tmp/ail-fedora45-final-results`; both exited
+0. Each contains build logs, installed-package logs, provenance, RPMs and SRPMs.
+The package tests installed release 1, upgraded to release 2, verified retained
+user integration, then erased the package. These paths are local evidence, not
+permanent artifact hosting. GitHub run artifacts provide downloadable copies of
+that run's packages and logs during the configured retention period.
+
+[Independent review results](FEDORA-REVIEW.md) record the findings and fixes.
 
 ## Desktop and lifecycle acceptance — NOT RUN
 

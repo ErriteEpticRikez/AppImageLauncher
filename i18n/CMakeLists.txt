@@ -1,4 +1,6 @@
-# lupdate must be installed and available
+# Qt tools have versioned executable names on Fedora.
+find_program(LUPDATE NAMES lupdate-qt5 lupdate REQUIRED)
+find_program(LRELEASE NAMES lrelease-qt5 lrelease REQUIRED)
 check_program(NAME lupdate)
 check_program(NAME lrelease)
 

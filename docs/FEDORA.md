@@ -24,7 +24,9 @@ The runner performs these steps independently for each release:
 
 1. Prepare the committed source tree and pinned dependency revisions with network
    access using `packaging/fedora/prepare-source.py`. Build the Fedora toolchain
-   image from `ci/fedora/Containerfile` with `FEDORA_RELEASE=44` or `45`.
+   image from the exported `ci/fedora/Containerfile` with `FEDORA_RELEASE=44` or `45`,
+   using the committed source export as the build context. The image derives its
+   application dependencies from that export's RPM spec using `dnf5 builddep`.
 2. Run the standalone watcher tests in a network-disabled container, with
    libstdc++ debug iterator checks and bounded waits on real filesystem events.
 3. Run `packaging/fedora/build-rpm.sh PREPARED_SOURCE OUTPUT_DIR` inside that

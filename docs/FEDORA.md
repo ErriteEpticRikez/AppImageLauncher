@@ -130,8 +130,9 @@ requires verifiable signatures by default. Use a maintained release signing
 identity for distributed packages; this change creates no production key and
 publishes no repository.
 
-With an existing signing key on a dedicated signing machine, substitute its
-fingerprint and the exact artifact filenames:
+With an existing signing key on a dedicated signing machine, use
+[`rpmsign`](https://rpm.org/docs/6.1.x/man/rpmsign.1), substituting its fingerprint
+and the exact artifact filenames:
 
 ```sh
 rpmsign --addsign --key-id YOUR_SIGNING_KEY_FINGERPRINT appimagelauncher-VERSION.x86_64.rpm
@@ -150,7 +151,6 @@ fetch in `%build`. Authenticate with `copr-cli` on the maintainer's machine and
 confirm both requested chroots are available before creating a project:
 
 ```sh
-copr-cli list-chroots
 copr-cli create appimagelauncher-fedora --chroot fedora-44-x86_64 --chroot fedora-45-x86_64
 copr-cli build appimagelauncher-fedora /path/to/appimagelauncher-VERSION.src.rpm
 ```

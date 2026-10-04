@@ -13,7 +13,7 @@ jobs:
   native:
     name: Fedora ${{ matrix.fedora }} x86_64
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -41,9 +41,9 @@ jobs:
             ${{ runner.temp }}/fedora-artifacts/*.json
             ${{ runner.temp }}/fedora-artifacts/SOURCE_*
             ${{ runner.temp }}/fedora-artifacts/**/RPMS/**/*.rpm
-            ${{ runner.temp }}/fedora-artifacts/current/SRPMS/*.rpm
-            ${{ runner.temp }}/fedora-artifacts/current/SOURCES/*.tar.gz
-            ${{ runner.temp }}/fedora-artifacts/current/SPECS/*.spec
-            ${{ runner.temp }}/fedora-artifacts/current/*.txt
+            ${{ runner.temp }}/fedora-artifacts/**/SRPMS/*.rpm
+            ${{ runner.temp }}/fedora-artifacts/**/SOURCES/*.tar.gz
+            ${{ runner.temp }}/fedora-artifacts/**/SPECS/*.spec
+            ${{ runner.temp }}/fedora-artifacts/**/build-packages.txt
             ${{ runner.temp }}/fedora-artifacts/current/SHA256SUMS
             ${{ runner.temp }}/fedora-artifacts/previous/SHA256SUMS

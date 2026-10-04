@@ -6,7 +6,8 @@ need to be changed. Python 3.12+, Git, and patch are needed for source preparati
 
 ```
 packaging/fedora/prepare-source.py /tmp/AppImageLauncher-source --ref HEAD
-podman build --build-arg FEDORA_RELEASE=44 -t ail-fedora44 -f ci/fedora/Containerfile ci/fedora
+podman build --build-arg FEDORA_RELEASE=44 -t ail-fedora44 \
+  -f /tmp/AppImageLauncher-source/ci/fedora/Containerfile /tmp/AppImageLauncher-source
 podman run --rm --network=none -v /tmp/AppImageLauncher-source:/src:Z -w /src ail-fedora44 bash -euxc '
   export SOURCE_DATE_EPOCH=$(cat SOURCE_DATE_EPOCH)
   cmake -S . -B build -G Ninja -C packaging/fedora/native.cmake \
@@ -18,7 +19,10 @@ podman run --rm --network=none -v /tmp/AppImageLauncher-source:/src:Z -w /src ai
 ```
 
 Repeat with `FEDORA_RELEASE=45` and a separate source/build directory. Build the image
-before the offline step. Use a fresh output directory for `prepare-source.py`; it exports
+before the offline step. The prepared source is the image build context: the
+Containerfile installs application BuildRequires directly from its committed RPM
+spec using `dnf5 builddep`, after installing the spec-parsing and fixture tools.
+Use a fresh output directory for `prepare-source.py`; it exports
 the committed revision, not uncommitted work. `--cache DIR` reuses dependency Git objects.
 `SOURCE_REVISION`, `SOURCE_DATE_EPOCH`, `cmake/GIT_COMMIT` and
 `packaging/fedora/dependencies.json` retain version provenance without `.git` directories.

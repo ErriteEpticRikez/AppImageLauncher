@@ -23,7 +23,7 @@ python3 "$repository/packaging/fedora/prepare-source.py" "$scratch/source" --ref
 cp "$scratch/source/SOURCE_REVISION" "$scratch/source/SOURCE_DATE_EPOCH" "$output/"
 cp "$scratch/source/packaging/fedora/dependencies.json" "$output/"
 "$engine" build --pull --build-arg "FEDORA_RELEASE=$release" -t "$builder" \
-    -f "$repository/ci/fedora/Containerfile" "$repository/ci/fedora" 2>&1 | tee "$output/builder.log"
+    -f "$scratch/source/ci/fedora/Containerfile" "$scratch/source" 2>&1 | tee "$output/builder.log"
 "$engine" image inspect "$builder" > "$output/builder-image.json"
 "$engine" pull "$base"
 "$engine" image inspect "$base" > "$output/runtime-image.json"

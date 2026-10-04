@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Run only in a fresh disposable Fedora runtime container, never on a workstation.
 set -euo pipefail
+if [ ! -f /run/.containerenv ] && [ ! -f /.dockerenv ]; then
+    echo "This script must run inside a disposable container" >&2
+    exit 1
+fi
 first_rpm=$(realpath "${1:?usage: test-rpm.sh RPM_RELEASE_1 RPM_RELEASE_2 FIXTURE_DIR TEST_SCRIPT_DIR}")
 second_rpm=$(realpath "${2:?higher-release RPM required}")
 fixtures=$(realpath "${3:?fixture directory required}")

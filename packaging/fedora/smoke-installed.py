@@ -57,9 +57,11 @@ def main():
         assert required in files, required
     assert not any('/opt/' in path or '/plugins/' in path for path in files), files
     dependencies = run('rpm', '-q', '--requires', 'appimagelauncher')
-    for required in ('qt5-qtwayland', 'qt5-qtquickcontrols2', 'qt5-qtsvg'):
+    for required in ('qt5-qtwayland', 'qt5-qtquickcontrols2', 'qt5-qtsvg', 'fuse-libs'):
         assert required in dependencies, required
     run('rpm', '-q', '--scripts', 'appimagelauncher')
+    run('rpm', '-q', '--whatprovides', 'libfuse.so.2()(64bit)')
+    run('rpm', '-q', 'fuse')
     for filename in files:
         path = Path(filename)
         if not path.is_file() or path.is_symlink():

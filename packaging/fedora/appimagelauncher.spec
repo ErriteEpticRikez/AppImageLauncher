@@ -9,7 +9,7 @@ Version:        3.0.0~beta2
 Release:        %{?build_release}%{!?build_release:1}%{?dist}
 Summary:        Integrate AppImages with the desktop
 # License texts and embedded-code notices are shipped under %%license.
-License:        MIT AND LicenseRef-Artistic-2.0beta4 AND Zlib AND LicenseRef-Fedora-Public-Domain
+License:        MIT AND LicenseRef-Artistic-2.0beta4 AND Zlib AND LicenseRef-Fedora-Public-Domain AND LGPL-2.1-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1)
 URL:            https://github.com/TheAssassin/AppImageLauncher
 Source0:        AppImageLauncher-source.tar.gz
 ExclusiveArch:  x86_64
@@ -27,6 +27,8 @@ BuildRequires:  systemd-rpm-macros
 # Runtime QML imports/platform plugins are invisible to ELF dependency generation.
 Requires:       qt5-qtquickcontrols2 qt5-qtdeclarative qt5-qtwayland qt5-qtsvg
 Requires:       desktop-file-utils shared-mime-info xdg-utils
+# Legacy type-2 runtimes load FUSE 2 themselves, outside our ELF dependency graph.
+Requires:       fuse fuse-libs%{?_isa}
 %systemd_requires
 Provides:       bundled(libappimage) = 1.0.3
 Provides:       bundled(zsync2) = 2.0.0~alpha1
@@ -64,6 +66,10 @@ cp vendor/zsync2/lib/zlib/README license-notices/zlib.txt
 cp vendor/zsync2/lib/librcksum/md4.c license-notices/md4.c
 cp vendor/zsync2/lib/libzsync/sha1.c license-notices/sha1.c
 cp vendor/libappimage/src/libappimage_hashlib/md5.c license-notices/md5.c
+# The static binfmt interpreter incorporates Fedora C/C++ runtime code.
+cp -a /usr/share/licenses/glibc license-notices/glibc
+cp -a /usr/share/licenses/libgcc license-notices/gcc-runtime
+rpm -q --qf '%%{NAME} %%{EVR} %%{SOURCERPM}\n' glibc-static libstdc++-static > static-runtime-sources.txt
 
 %check
 desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
@@ -92,7 +98,7 @@ fi
 
 %files
 %license license-notices/
-%doc README.md packaging/fedora/dependencies.json SOURCE_REVISION SOURCE_DATE_EPOCH
+%doc README.md packaging/fedora/dependencies.json SOURCE_REVISION SOURCE_DATE_EPOCH static-runtime-sources.txt
 %{_bindir}/AppImageLauncher
 %{_bindir}/AppImageLauncherSettings
 %{_bindir}/appimagelauncherd

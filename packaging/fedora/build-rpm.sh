@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Run INSIDE the Fedora builder container; prepared sources must be network-free.
 set -euo pipefail
+if [ ! -f /run/.containerenv ] && [ ! -f /.dockerenv ]; then
+    echo "This script must run inside a disposable container" >&2
+    exit 1
+fi
 source_dir=$(realpath "${1:?usage: build-rpm.sh PREPARED_SOURCE OUTPUT_DIR}")
 output_dir=$(realpath -m "${2:?output directory required}")
 mkdir -p "$output_dir"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}

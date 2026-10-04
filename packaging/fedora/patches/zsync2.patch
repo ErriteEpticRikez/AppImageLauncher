@@ -1,0 +1,58 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b871203..e8beaaf 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,19 +46,10 @@ endif()
+ # WARNING: this value will be stored in the CMake cache
+ # to update it, you will have to reset the CMake cache
+ # (doesn't matter for CI builds like Travis for instance, where there's no permanent CMake cache)
+-execute_process(
+-    COMMAND git rev-parse --short HEAD
+-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+-    OUTPUT_VARIABLE GIT_COMMIT
+-    OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
++set(GIT_COMMIT "fc62ae7")
+ 
+ # get current date
+-execute_process(
+-    COMMAND env LC_ALL=C date -u "+%Y-%m-%d %H:%M:%S %Z"
+-    OUTPUT_VARIABLE BUILD_DATE
+-    OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
++string(TIMESTAMP BUILD_DATE "%Y-%m-%d %H:%M:%S UTC" UTC)
+ 
+ # config.h contains some global defines, our config.h.in is a modified version of the upstream config.h.in to make it
+ # integrate with CMake
+diff --git a/lib/libzsync/zsync.c b/lib/libzsync/zsync.c
+index b425db9..a6b61c2 100644
+--- a/lib/libzsync/zsync.c
++++ b/lib/libzsync/zsync.c
+@@ -457,12 +457,12 @@ const char *const *zsync_get_urls(struct zsync_state *zs, int *n, int *t) {
+     if (zs->zmap && zs->nzurl) {
+         *n = zs->nzurl;
+         *t = 1;
+-        return zs->zurl;
++        return (const char *const *)zs->zurl;
+     }
+     else {
+         *n = zs->nurl;
+         *t = 0;
+-        return zs->url;
++        return (const char *const *)zs->url;
+     }
+ }
+ 
+@@ -788,8 +788,10 @@ char *zsync_end(struct zsync_state *zs) {
+  */
+ void zsync_configure_zstream_for_zdata(const struct zsync_state *zs,
+                                        struct z_stream_s *zstrm,
+-                                       long zoffset, long long *poutoffset) {
+-    configure_zstream_for_zdata(zs->zmap, zstrm, zoffset, poutoffset);
++                                       long zoffset, off_t *poutoffset) {
++    long long outoffset;
++    configure_zstream_for_zdata(zs->zmap, zstrm, zoffset, &outoffset);
++    *poutoffset = outoffset;
+     {                           /* Load in prev 32k sliding window for backreferences */
+         long long pos = *poutoffset;
+         int lookback = (pos > 32768) ? 32768 : pos;

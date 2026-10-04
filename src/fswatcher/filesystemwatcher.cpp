@@ -5,6 +5,7 @@
 
 // library includes
 #include <QDir>
+#include <QFile>
 #include <QMutex>
 #include <QTimer>
 #include <QThread>
@@ -35,7 +36,7 @@ namespace appimagelauncher::daemon {
     public:
         enum EVENT_TYPES {
             // events that indicate file creations, modifications etc.
-            fileChangeEvents = IN_CLOSE_WRITE | IN_MOVE,
+            fileChangeEvents = IN_CLOSE_WRITE | IN_MOVED_TO,
             // events that indicate a file removal from a directory, e.g., deletion or moving to another location
             fileRemovalEvents = IN_DELETE | IN_MOVED_FROM,
         };
@@ -87,13 +88,20 @@ namespace appimagelauncher::daemon {
                 // create inotify_event from current position in buffer
                 auto* currentEvent = (struct inotify_event*) p;
 
-                // initialize new INotifyEvent with the data from the currentEvent
-                QString relativePath(currentEvent->name);
-                auto directory = watchFdMap[currentEvent->wd];
-                events.emplace_back(currentEvent->mask, directory.absolutePath() + "/" + relativePath);
-
-                // update current position in buffer
+                // Advance before skipping watch lifecycle events, which have no filename.
                 p += sizeof(struct inotify_event) + currentEvent->len;
+
+                if (currentEvent->mask & IN_IGNORED) {
+                    watchFdMap.erase(currentEvent->wd);
+                    continue;
+                }
+
+                const auto watch = watchFdMap.find(currentEvent->wd);
+                if (watch == watchFdMap.end() || currentEvent->len == 0)
+                    continue;
+
+                const QString relativePath = QFile::decodeName(currentEvent->name);
+                events.emplace_back(currentEvent->mask, watch->second.absoluteFilePath(relativePath));
             }
 
             return events;
@@ -127,10 +135,24 @@ namespace appimagelauncher::daemon {
                 return false;
             }
 
+            // A recreated path gets a new descriptor while IN_IGNORED for the old
+            // inode may still be queued. Keep only the current watch for this path
+            // so a subsequent removal cannot accidentally leave it running.
+            bool success = true;
+            for (auto it = watchFdMap.begin(); it != watchFdMap.end();) {
+                if (it->first != watchFd && it->second == directory) {
+                    const auto obsoleteFd = it->first;
+                    ++it;
+                    const bool stopped = stopWatching(obsoleteFd);
+                    success = stopped && success;
+                } else {
+                    ++it;
+                }
+            }
             watchFdMap[watchFd] = directory;
             eventsLoopTimer.start();
 
-            return true;
+            return success;
         }
 
         bool startWatching() {
@@ -166,6 +188,9 @@ namespace appimagelauncher::daemon {
 
             if (inotify_rm_watch(inotifyFd, watchFd) == -1) {
                 const auto error = errno;
+                // A deleted directory can lose its kernel watch before IN_IGNORED is read.
+                if (error == EINVAL)
+                    return true;
                 qCCritical(fswCat) << "Failed to stop watching: " << strerror(error);
                 return false;
             }
@@ -190,21 +215,19 @@ namespace appimagelauncher::daemon {
 
         bool stopWatching(const QDirSet& directories) {
             QMutexLocker lock{mutex};
+            bool success = true;
 
             for (const auto& directory: directories) {
-                for (const auto& pair: watchFdMap) {
-                    if (pair.second == directory) {
-                        if (!stopWatching(pair.first)) {
-                            return false;
-                        }
-                    }
+                // stopWatching erases the matched map entry; never increment that iterator afterward.
+                const auto it = std::find_if(watchFdMap.begin(), watchFdMap.end(),
+                    [&directory](const auto& pair) { return pair.second == directory; });
+                if (it != watchFdMap.end()) {
+                    const bool stopped = stopWatching(it->first);
+                    success = stopped && success;
                 }
-
-                // reaching the following line means that we couldn't find the requested path in the fd map
-                return false;
             }
 
-            return true;
+            return success;
         }
     };
 
@@ -297,10 +320,12 @@ namespace appimagelauncher::daemon {
         {
             // erase-remove doesn't work with sets apparently (see https://stackoverflow.com/a/26833313)
             // therefore we use a simple linear search to remove non-existing directories
-            for (auto it = watchedDirectories.begin(); it != watchedDirectories.end(); ++it) {
+            for (auto it = watchedDirectories.begin(); it != watchedDirectories.end();) {
                 if (!it->exists()) {
                     qCDebug(fswCat) << "Directory " << it->path() << " does not exist, skipping";
                     it = watchedDirectories.erase(it);
+                } else {
+                    ++it;
                 }
             }
         }
@@ -348,9 +373,11 @@ namespace appimagelauncher::daemon {
 
         // we must run both stop and start methods, so we cannot directly return false if either fails
         // also, this makes sure the signals are sent even in case either of the following methods fails
-        bool rv = true;
-        rv = rv && d->stopWatching(disappearedDirectories);
-        rv = rv && d->startWatching(newDirectories);
+        const bool stopped = d->stopWatching(disappearedDirectories);
+        // Reassert existing paths too: the same name may now refer to a new inode.
+        // inotify_add_watch preserves a live watch and recreates a removed one.
+        const bool started = d->startWatching(watchedDirectories);
+        const bool rv = stopped && started;
 
         // send out the signals for further handling by users of a fs watcher instance
         emit newDirectoriesToWatch(newDirectories);

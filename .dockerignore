@@ -1,5 +1,6 @@
-# ignore everything but ci/ and lib/AppImageUpdate/ci/
+# ignore everything but image definitions and the native RPM build requirements
 # note that the last line that matches a file decides, so ! rules after * decide which files to include
 *
 !ci/
 !lib/AppImageUpdate/ci/
+!packaging/fedora/appimagelauncher.spec

@@ -44,6 +44,8 @@ function(make_preload_lib_target target_name)
     # library to be preloaded when launching the patched runtime binary
     # we need to build with -fPIC, otherwise we can't use it with $LD_PRELOAD
     add_library(${target_name} SHARED preload.c logging.h)
+    # This is a C-only library; Qt autogen would add C++ and require 32-bit libstdc++.
+    set_target_properties(${target_name} PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
     target_link_libraries(${target_name} PRIVATE dl)
     target_compile_options(${target_name}
         PRIVATE -fPIC

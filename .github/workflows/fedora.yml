@@ -1,0 +1,53 @@
+name: Fedora native RPM
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fedora-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Fedora ${{ matrix.fedora }} x86_64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora: ['44', '45']
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build and check native RPM
+        env:
+          FEDORA_RELEASE: ${{ matrix.fedora }}
+          CONTAINER_ENGINE: docker
+          BUILD_JOBS: '2'
+        run: bash ci/fedora/check.sh "$FEDORA_RELEASE" "$RUNNER_TEMP/fedora-artifacts"
+      - name: Upload RPMs, sources and validation logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fedora-${{ matrix.fedora }}-x86_64
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/fedora-artifacts/*.log
+            ${{ runner.temp }}/fedora-artifacts/*.txt
+            ${{ runner.temp }}/fedora-artifacts/*.json
+            ${{ runner.temp }}/fedora-artifacts/SOURCE_*
+            ${{ runner.temp }}/fedora-artifacts/**/RPMS/**/*.rpm
+            ${{ runner.temp }}/fedora-artifacts/**/SRPMS/*.rpm
+            ${{ runner.temp }}/fedora-artifacts/**/SOURCES/*.tar.gz
+            ${{ runner.temp }}/fedora-artifacts/**/SPECS/*.spec
+            ${{ runner.temp }}/fedora-artifacts/**/build-packages.txt
+            ${{ runner.temp }}/fedora-artifacts/current/SHA256SUMS
+            ${{ runner.temp }}/fedora-artifacts/previous/SHA256SUMS

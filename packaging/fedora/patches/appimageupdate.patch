@@ -1,0 +1,31 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f00860f..5b7842c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -9,12 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ # WARNING: this value will be stored in the CMake cache
+ # to update it, you will have to reset the CMake cache
+ # (doesn't matter for CI builds like Travis for instance, where there's no permanent CMake cache)
+-execute_process(
+-    COMMAND git rev-parse --short HEAD
+-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+-    OUTPUT_VARIABLE GIT_COMMIT
+-    OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
++set(GIT_COMMIT "a211784")
+ 
+ # set version and build number
+ set(VERSION 2.0.0-alpha-1-20251018)
+@@ -25,11 +20,7 @@ else()
+ endif()
+ 
+ # get current date
+-execute_process(
+-    COMMAND env LC_ALL=C date -u "+%Y-%m-%d %H:%M:%S %Z"
+-    OUTPUT_VARIABLE DATE
+-    OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
++string(TIMESTAMP DATE "%Y-%m-%d %H:%M:%S UTC" UTC)
+ 
+ option(ENABLE_SANITIZERS "Enable builds using sanitizers" off)
+ 

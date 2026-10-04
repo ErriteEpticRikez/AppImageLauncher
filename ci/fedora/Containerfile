@@ -1,7 +1,7 @@
 ARG FEDORA_RELEASE=44
 FROM registry.fedoraproject.org/fedora:${FEDORA_RELEASE}
 RUN dnf -y install cmake gcc gcc-c++ make ninja-build git \
-    glibc-devel.i686 glibc-static libstdc++-static \
+    glibc-devel.i686 libatomic.i686 glibc-static libstdc++-static \
     fuse-devel glib2-devel cairo-devel libbsd-devel \
     qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qttools-devel \
     qt5-qtquickcontrols2 qt5-qtwayland libcurl-devel cpr-devel squashfuse-devel \

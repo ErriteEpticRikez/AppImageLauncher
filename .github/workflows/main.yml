@@ -4,6 +4,8 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
+    # This release pipeline publishes to the upstream GHCR namespace.
+    if: github.repository == 'TheAssassin/AppImageLauncher'
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +35,6 @@ jobs:
     name: ${{ matrix.NAME }}
     env:
       DOCKER_PLATFORM: ${{ matrix.DOCKER_PLATFORM }}
-      DIST: ${{ matrix.DIST }}
       BUILD_LITE: ${{ matrix.BUILD_LITE }}
     runs-on: ${{ matrix.RUNS_ON }}
     steps:
@@ -59,6 +60,7 @@ jobs:
               appimagelauncher-lite-*.AppImage*
 
   upload:
+    if: github.repository == 'TheAssassin/AppImageLauncher'
     name: Create release and upload artifacts
     needs:
       - build

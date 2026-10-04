@@ -2,13 +2,14 @@
 %global debug_package %{nil}
 # Private implementation libraries must not become public RPM capabilities.
 %global __provides_exclude_from ^%{private_libdir}/.*$
+%global __requires_exclude ^libappimage(update(-qt)?)?\\.so.*$
 
 Name:           appimagelauncher
 Version:        3.0.0~beta2
 Release:        %{?build_release}%{!?build_release:1}%{?dist}
 Summary:        Integrate AppImages with the desktop
 # License texts and embedded-code notices are shipped under %%license.
-License:        MIT AND Artistic-2.0 AND Zlib AND LicenseRef-Fedora-Public-Domain
+License:        MIT AND LicenseRef-Artistic-2.0beta4 AND Zlib AND LicenseRef-Fedora-Public-Domain
 URL:            https://github.com/TheAssassin/AppImageLauncher
 Source0:        AppImageLauncher-source.tar.gz
 ExclusiveArch:  x86_64
@@ -62,6 +63,7 @@ cp vendor/zsync2/COPYING license-notices/zsync2.txt
 cp vendor/zsync2/lib/zlib/README license-notices/zlib.txt
 cp vendor/zsync2/lib/librcksum/md4.c license-notices/md4.c
 cp vendor/zsync2/lib/libzsync/sha1.c license-notices/sha1.c
+cp vendor/libappimage/src/libappimage_hashlib/md5.c license-notices/md5.c
 
 %check
 desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop

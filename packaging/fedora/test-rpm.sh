@@ -14,13 +14,29 @@ dnf -y --setopt=install_weak_deps=False install python3 desktop-file-utils glibc
 # This per-command exception applies only to local, unsigned test artifacts.
 # Repository dependencies retain their normal signature checking policy.
 dnf -y --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=0 install "$first_rpm"
+upgrade_home=$(mktemp -d)
+trap 'rm -rf "$upgrade_home"' EXIT
+export HOME="$upgrade_home" XDG_CONFIG_HOME="$upgrade_home/config" XDG_DATA_HOME="$upgrade_home/data"
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$upgrade_home/Applications"
+printf '[AppImageLauncher]\ndestination = %s/Applications\nenable_daemon = false\n' "$upgrade_home" > "$XDG_CONFIG_HOME/appimagelauncher.cfg"
+cp "$fixtures/Fixture Update.AppImage" "$upgrade_home/Upgrade Fixture.AppImage"
+ail-cli integrate "$upgrade_home/Upgrade Fixture.AppImage"
+integrated=$(find "$upgrade_home/Applications" -name '*.AppImage' -print -quit)
+desktop=$(find "$XDG_DATA_HOME/applications" -name 'appimagekit_*.desktop' -print -quit)
+test -f "$integrated" && test -f "$desktop"
 first_version=$(rpm -q --qf '%{EVR}' appimagelauncher)
 python3 "$tests/smoke-installed.py" "$fixtures"
 dnf -y --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=0 upgrade "$second_rpm"
 second_version=$(rpm -q --qf '%{EVR}' appimagelauncher)
 test "$first_version" != "$second_version"
+# The user's existing integration must survive replacement of the package payload.
+test -f "$integrated" && test -f "$desktop"
+ail-cli integrate "$integrated"
+desktop-file-validate "$desktop"
 python3 "$tests/smoke-installed.py" "$fixtures"
 dnf -y remove appimagelauncher
+# Package erasure must not remove the user's AppImage or its direct desktop entry.
+test -f "$integrated" && test -f "$desktop"
 if rpm -q appimagelauncher; then
     echo 'Package remains installed after erase' >&2
     exit 1

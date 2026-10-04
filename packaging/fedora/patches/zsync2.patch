@@ -24,3 +24,35 @@ index b871203..e8beaaf 100644
  
  # config.h contains some global defines, our config.h.in is a modified version of the upstream config.h.in to make it
  # integrate with CMake
+diff --git a/lib/libzsync/zsync.c b/lib/libzsync/zsync.c
+index b425db9..a6b61c2 100644
+--- a/lib/libzsync/zsync.c
++++ b/lib/libzsync/zsync.c
+@@ -457,12 +457,12 @@ const char *const *zsync_get_urls(struct zsync_state *zs, int *n, int *t) {
+     if (zs->zmap && zs->nzurl) {
+         *n = zs->nzurl;
+         *t = 1;
+-        return zs->zurl;
++        return (const char *const *)zs->zurl;
+     }
+     else {
+         *n = zs->nurl;
+         *t = 0;
+-        return zs->url;
++        return (const char *const *)zs->url;
+     }
+ }
+ 
+@@ -788,8 +788,10 @@ char *zsync_end(struct zsync_state *zs) {
+  */
+ void zsync_configure_zstream_for_zdata(const struct zsync_state *zs,
+                                        struct z_stream_s *zstrm,
+-                                       long zoffset, long long *poutoffset) {
+-    configure_zstream_for_zdata(zs->zmap, zstrm, zoffset, poutoffset);
++                                       long zoffset, off_t *poutoffset) {
++    long long outoffset;
++    configure_zstream_for_zdata(zs->zmap, zstrm, zoffset, &outoffset);
++    *poutoffset = outoffset;
+     {                           /* Load in prev 32k sliding window for backreferences */
+         long long pos = *poutoffset;
+         int lookback = (pos > 32768) ? 32768 : pos;

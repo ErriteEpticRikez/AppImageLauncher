@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Toggle only AppImageLauncher's live kernel handlers, without unregistering them.
+set -euo pipefail
+
+BINFMT_DIR=/proc/sys/fs/binfmt_misc
+
+usage() {
+    cat <<'EOF'
+Usage: appimage-launcher-override {status|off|on}
+
+  status  Show registered AppImageLauncher handlers (no root needed).
+  off     Temporarily disable interception so AppImages run directly.
+  on      Enable registered AppImageLauncher handlers again.
+
+off/on require root and affect all users and AppImages. No persistent
+configuration is changed. Rebooting or re-registering handlers resets this.
+EOF
+}
+
+main() {
+    local action=${1:-status} entry interpreter found=0 value
+    if [[ $# -gt 1 ]]; then usage >&2; return 2; fi
+    case "$action" in
+        -h|--help) usage; return 0 ;;
+        status|off|on) ;;
+        *) usage >&2; return 2 ;;
+    esac
+
+    # Match the interpreter, not an assumed distribution-specific handler name.
+    # Never write to binfmt_misc/status: that would disable unrelated handlers.
+    for entry in "$BINFMT_DIR"/*; do
+        [[ -f "$entry" ]] || continue
+        case "${entry##*/}" in register|status) continue ;; esac
+        interpreter=$(sed -n 's/^interpreter //p' "$entry")
+        case "${interpreter,,}" in
+            */appimagelauncher|*/appimagelauncher/*) ;;
+            *) continue ;;
+        esac
+        found=1
+        if [[ "$action" == status ]]; then
+            printf '%s: %s\n' "${entry##*/}" "$(head -n 1 "$entry")"
+            continue
+        fi
+        if (( EUID != 0 )); then
+            printf 'Run with sudo: %q %q\n' "$0" "$action" >&2
+            return 1
+        fi
+        value=0
+        [[ "$action" == on ]] && value=1
+        if ! printf '%s\n' "$value" > "$entry"; then
+            printf 'Failed to update %s; earlier handlers may already have changed.\n' "$entry" >&2
+            return 1
+        fi
+        printf '%s: override %s\n' "${entry##*/}" "$action"
+    done
+    if (( found == 0 )); then
+        printf 'No AppImageLauncher kernel handlers are registered; no changes made.\n'
+    fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

@@ -6,7 +6,7 @@
 
 Name:           appimagelauncher
 Version:        3.0.0~beta2
-Release:        %{?build_release}%{!?build_release:1}%{?dist}
+Release:        %{?build_release}%{!?build_release:3}%{?dist}
 Summary:        Integrate AppImages with the desktop
 # License texts and embedded-code notices are shipped under %%license.
 License:        MIT AND LicenseRef-Artistic-2.0beta4 AND Zlib AND LicenseRef-Fedora-Public-Domain AND LGPL-2.1-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1)
@@ -27,6 +27,7 @@ BuildRequires:  systemd-rpm-macros
 # Runtime QML imports/platform plugins are invisible to ELF dependency generation.
 Requires:       qt5-qtquickcontrols2 qt5-qtdeclarative qt5-qtwayland qt5-qtsvg
 Requires:       desktop-file-utils shared-mime-info xdg-utils
+Requires:       bash coreutils sed
 # Legacy type-2 runtimes load FUSE 2 themselves, outside our ELF dependency graph.
 Requires:       fuse fuse-libs%{?_isa}
 %systemd_requires
@@ -54,6 +55,7 @@ cmake --build build --parallel %{_smp_build_ncpus}
 %install
 DESTDIR=%{buildroot} cmake --install build --component APPIMAGELAUNCHER
 DESTDIR=%{buildroot} cmake --install build --component APPIMAGELAUNCHER_CLI
+install -Dm755 bin/appimage-launcher-override %{buildroot}%{_bindir}/appimage-launcher-override
 # Keep distinct license files rather than overwriting several LICENSE.txt files.
 mkdir -p license-notices
 cp LICENSE.txt license-notices/AppImageLauncher.txt
@@ -72,6 +74,10 @@ cp -a /usr/share/licenses/libgcc license-notices/gcc-runtime
 rpm -q --qf '%%{NAME} %%{EVR} %%{SOURCERPM}\n' glibc-static libstdc++-static > static-runtime-sources.txt
 
 %check
+bash -n bin/appimage-launcher-override
+bash tests/override.sh
+%{buildroot}%{_bindir}/appimage-launcher-override --help
+test -x %{buildroot}%{_bindir}/appimage-launcher-override
 desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 test -x %{buildroot}%{_bindir}/ail-cli
 test -x %{buildroot}%{private_libdir}/update
@@ -98,11 +104,12 @@ fi
 
 %files
 %license license-notices/
-%doc README.md packaging/fedora/dependencies.json SOURCE_REVISION SOURCE_DATE_EPOCH static-runtime-sources.txt
+%doc README.md packaging/fedora/dependencies.json packaging/fedora/override.md SOURCE_REVISION SOURCE_DATE_EPOCH static-runtime-sources.txt
 %{_bindir}/AppImageLauncher
 %{_bindir}/AppImageLauncherSettings
 %{_bindir}/appimagelauncherd
 %{_bindir}/ail-cli
+%{_bindir}/appimage-launcher-override
 %{private_libdir}/
 %{_userunitdir}/appimagelauncherd.service
 %{_binfmtdir}/appimagelauncher.conf
